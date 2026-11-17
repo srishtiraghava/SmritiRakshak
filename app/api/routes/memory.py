@@ -13,9 +13,11 @@ Endpoints:
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.orm import Session
 
 from app.core.config import APP_NAME, APP_VERSION
+from app.db.session import get_db
 from app.schemas.memory import (
     Decision,
     MemoryInput,
@@ -67,6 +69,7 @@ def get_health() -> dict[str, str]:
 def inspect_and_store_memory(
     memory_input: MemoryInput,
     response: Response,
+    db: Session = Depends(get_db),
 ) -> MemoryProcessingResponse:
     """Submit a memory entry for security analysis and policy enforcement.
 
@@ -74,7 +77,7 @@ def inspect_and_store_memory(
     and redacted findings.
     """
     try:
-        result = memory_service.process_memory(memory_input)
+        result = memory_service.process_memory(memory_input, db_session=db)
 
         # Set 201 Created if memory was successfully approved and stored in trusted memory
         if result.decision == Decision.ALLOW:

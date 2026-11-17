@@ -36,3 +36,9 @@ coverage.xml
 
 # ── mypy ──
 .mypy_cache/
+
+# ── Local PostgreSQL ──
+.pgsql/
+.pgdata/
+.pgdata_test/
+

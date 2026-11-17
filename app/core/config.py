@@ -42,6 +42,21 @@ def _env_str(name: str, default: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Database Configuration (PostgreSQL 16+ via SQLAlchemy 2.0 & psycopg 3)
+# ---------------------------------------------------------------------------
+
+DATABASE_URL: str = _env_str(
+    "DATABASE_URL",
+    "postgresql+psycopg://postgres@localhost:5432/smritirakshak",
+)
+
+TEST_DATABASE_URL: str = _env_str(
+    "TEST_DATABASE_URL",
+    "postgresql+psycopg://postgres@localhost:5432/smritirakshak_test",
+)
+
+
+# ---------------------------------------------------------------------------
 # Application metadata
 # ---------------------------------------------------------------------------
 

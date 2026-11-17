@@ -7,11 +7,17 @@ Orchestrates the end-to-end memory inspection and storage workflow:
   2. Threat detection (via detector.scan_content)
   3. Risk scoring (via risk_scorer.calculate_risk)
   4. Policy enforcement (via policy_engine.evaluate_risk_assessment)
-  5. Isolated in-memory repository storage based on decision:
+  5. Segregated storage based on decision:
      - ALLOW      → Trusted memory repository
      - FLAG       → Pending-review repository (flagged, not trusted)
      - QUARANTINE → Isolated quarantine repository
      - BLOCK      → Rejected / audit repository (never in trusted)
+
+Storage Backends:
+─────────────────
+• In-Memory (default): Dictionary-based repos for testing and dev.
+• PostgreSQL (when a SQLAlchemy session is provided): Persists to
+  segregated PostgreSQL tables via MemoryRepository.
 
 Security Guarantees:
 ────────────────────
@@ -22,16 +28,19 @@ Security Guarantees:
 • Complete Separation of Tiers: Flagged and quarantined memories are
   physically kept in separate repositories and never returned by
   trusted memory queries.
-• Decoupled Architecture: Independent of FastAPI or HTTP frameworks,
-  suitable for standalone reuse across any AI agent system.
+• DB Failure Isolation: If the database write fails, the transaction is
+    rolled back and the request fails closed with a BLOCK response.
 """
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+
+from sqlalchemy.orm import Session
 
 from app.schemas.memory import (
     Decision,
@@ -44,6 +53,8 @@ from app.schemas.memory import (
 from app.security.detector import scan_content
 from app.security.policy_engine import evaluate_risk_assessment
 from app.security.risk_scorer import calculate_risk
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -64,7 +75,13 @@ class StoredMemory:
 
 
 class MemoryService:
-    """Coordinates memory security evaluation and segregated in-memory storage."""
+    """Coordinates memory security evaluation and segregated storage.
+
+    Supports two storage modes:
+    1. In-memory dicts (default) — for backward compatibility and testing.
+    2. PostgreSQL via MemoryRepository — when a SQLAlchemy Session is
+       passed to process_memory().
+    """
 
     def __init__(self) -> None:
         # Segregated in-memory repositories
@@ -87,6 +104,7 @@ class MemoryService:
     def process_memory(
         self,
         memory_entry: MemoryInput | dict[str, Any],
+        db_session: Session | None = None,
     ) -> MemoryProcessingResponse:
         """Execute the full 5-step security pipeline on an incoming memory entry.
 
@@ -94,6 +112,9 @@ class MemoryService:
         ----------
         memory_entry : MemoryInput | dict
             The incoming memory payload. Validated via MemoryInput schema.
+        db_session : Session | None
+            Optional SQLAlchemy session. When provided, the memory is
+            persisted to PostgreSQL; otherwise, stored in-memory.
 
         Returns
         -------
@@ -148,24 +169,41 @@ class MemoryService:
             is_flagged = False
 
             if decision == Decision.ALLOW:
-                self._trusted_repo[entry_id] = stored_record
+                if db_session is None:
+                    self._trusted_repo[entry_id] = stored_record
                 response_memory_id = entry_id
                 is_flagged = False
 
             elif decision == Decision.FLAG:
-                self._pending_review_repo[entry_id] = stored_record
+                if db_session is None:
+                    self._pending_review_repo[entry_id] = stored_record
                 response_memory_id = entry_id
                 is_flagged = True
 
             elif decision == Decision.QUARANTINE:
-                self._quarantine_repo[entry_id] = stored_record
+                if db_session is None:
+                    self._quarantine_repo[entry_id] = stored_record
                 response_memory_id = None
                 is_flagged = False
 
-            elif decision == Decision.BLOCK:
-                self._blocked_repo[entry_id] = stored_record
+            else:
+                if db_session is None and decision == Decision.BLOCK:
+                    self._blocked_repo[entry_id] = stored_record
                 response_memory_id = None
                 is_flagged = False
+
+            # If a database session is provided, persist to PostgreSQL
+            if db_session is not None:
+                self._persist_to_db(
+                    db_session=db_session,
+                    decision=decision,
+                    entry_id=entry_id,
+                    validated_input=validated_input,
+                    risk_score=risk_assessment.risk_score,
+                    risk_level=risk_assessment.risk_level.value,
+                    findings=findings,
+                    reason=policy_decision.reason,
+                )
 
             return MemoryProcessingResponse(
                 memory_id=response_memory_id,
@@ -201,7 +239,101 @@ class MemoryService:
             )
 
     # ─────────────────────────────────────────────────────────────────
-    # Repository Access Queries
+    # PostgreSQL Persistence (only called when db_session is provided)
+    # ─────────────────────────────────────────────────────────────────
+
+    def _persist_to_db(
+        self,
+        db_session: Session,
+        decision: Decision,
+        entry_id: str,
+        validated_input: MemoryInput,
+        risk_score: int,
+        risk_level: str,
+        findings: list[DetectorFinding],
+        reason: str,
+    ) -> None:
+        """Write to PostgreSQL via MemoryRepository. Fail-closed on error.
+
+        If the DB write fails, roll back and let the caller fail closed.
+        """
+        # Import here to avoid circular imports and keep the in-memory
+        # path free of database dependencies
+        from app.db.repository import MemoryRepository
+
+        try:
+            if decision == Decision.ALLOW:
+                MemoryRepository.save_trusted_memory(
+                    session=db_session,
+                    memory_id=entry_id,
+                    content=validated_input.content,
+                    source=validated_input.source.value,
+                    user_id=validated_input.user_id,
+                    session_id=validated_input.session_id,
+                    risk_score=risk_score,
+                    risk_level=risk_level,
+                    metadata_json=validated_input.metadata,
+                    findings=findings,
+                )
+
+            elif decision == Decision.FLAG:
+                MemoryRepository.save_pending_review_memory(
+                    session=db_session,
+                    memory_id=entry_id,
+                    content=validated_input.content,
+                    source=validated_input.source.value,
+                    user_id=validated_input.user_id,
+                    session_id=validated_input.session_id,
+                    risk_score=risk_score,
+                    risk_level=risk_level,
+                    metadata_json=validated_input.metadata,
+                    findings=findings,
+                )
+
+            elif decision == Decision.QUARANTINE:
+                MemoryRepository.save_quarantined_memory(
+                    session=db_session,
+                    memory_id=entry_id,
+                    content=validated_input.content,
+                    source=validated_input.source.value,
+                    user_id=validated_input.user_id,
+                    session_id=validated_input.session_id,
+                    risk_score=risk_score,
+                    risk_level=risk_level,
+                    quarantine_reason=reason,
+                    metadata_json=validated_input.metadata,
+                    findings=findings,
+                )
+
+            elif decision == Decision.BLOCK:
+                MemoryRepository.save_security_audit_event(
+                    session=db_session,
+                    event_id=entry_id,
+                    reason=reason,
+                    risk_score=risk_score,
+                    risk_level=risk_level,
+                    user_id=validated_input.user_id,
+                    session_id=validated_input.session_id,
+                    source=validated_input.source.value,
+                    findings=findings,
+                    content=validated_input.content,
+                )
+
+            db_session.commit()
+
+        except Exception:
+            db_session.rollback()
+            logger.error(
+                "Database persistence failed for memory %s (decision=%s). "
+                "Request will fail closed.",
+                entry_id,
+                decision.value,
+                exc_info=True,
+            )
+            raise
+
+    # ─────────────────────────────────────────────────────────────────
+    # Repository Access Queries (In-Memory)
     # ─────────────────────────────────────────────────────────────────
 
     def get_trusted_memories(self, user_id: str | None = None) -> list[StoredMemory]:
