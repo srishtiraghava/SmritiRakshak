@@ -41,4 +41,4 @@ coverage.xml
 .pgsql/
 .pgdata/
 .pgdata_test/
-
+node_modules/

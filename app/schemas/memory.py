@@ -284,3 +284,145 @@ class MemoryProcessingResponse(BaseModel):
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
     )
+
+
+# ───────────────────────────────────────────────────────────────────
+# DASHBOARD & QUERY SCHEMAS
+# ─────────────────────────────────────────────────────────────────
+
+class DashboardStatsResponse(BaseModel):
+    """Aggregated security metrics for the Security Overview Dashboard."""
+
+    total_processed: int = Field(..., ge=0)
+    trusted_count: int = Field(..., ge=0)
+    flagged_count: int = Field(..., ge=0)
+    quarantined_count: int = Field(..., ge=0)
+    blocked_count: int = Field(..., ge=0)
+    threat_category_distribution: dict[str, int] = Field(default_factory=dict)
+    risk_score_distribution: dict[str, int] = Field(default_factory=dict)
+    recent_events: list[dict[str, Any]] = Field(default_factory=list)
+    system_status: str = "operational"
+    database_status: str = "connected"
+
+
+class MemoryItemResponse(BaseModel):
+    """Unified read schema for memory entries across all storage tiers."""
+
+    id: str
+    content: str | None = None
+    content_sha256: str | None = None
+    source: str
+    user_id: str
+    session_id: str | None = None
+    decision: str
+    risk_score: int
+    risk_level: str
+    flagged: bool = False
+    quarantine_reason: str | None = None
+    review_status: str | None = None
+    metadata_json: dict[str, Any] | None = None
+    findings_json: list[dict[str, Any]] = Field(default_factory=list)
+    created_at: datetime
+
+
+class MemoryListResponse(BaseModel):
+    """Paginated list of memory entries."""
+
+    total: int
+    page: int
+    page_size: int
+    items: list[MemoryItemResponse]
+
+
+class AuditEventItemResponse(BaseModel):
+    """Schema for security audit log events."""
+
+    id: str
+    event_type: str
+    decision: str
+    reason: str
+    risk_score: int
+    risk_level: str
+    user_id: str
+    session_id: str | None = None
+    source: str
+    sanitized_evidence: str | None = None
+    content_sha256: str
+    findings_json: list[dict[str, Any]] = Field(default_factory=list)
+    created_at: datetime
+
+
+class ThreatItemResponse(BaseModel):
+    """Individual threat detection incident for the Threat Detection screen."""
+
+    id: str
+    memory_id: str | None = None
+    detector_name: str
+    category: str
+    severity: str
+    description: str
+    evidence: str
+    risk_points: int
+    decision: str
+    user_id: str
+    timestamp: datetime
+
+
+# ─────────────────────────────────────────────────────────────────
+# QUARANTINE WORKFLOW SCHEMAS
+# ─────────────────────────────────────────────────────────────────
+
+class QuarantineReviewAction(str, Enum):
+    """Action taken by a security reviewer on a quarantined entry."""
+    APPROVE = "approve"
+    REJECT = "reject"
+
+
+class QuarantineReviewRequest(BaseModel):
+    """Request payload for reviewing and resolving a quarantined memory."""
+
+    action: QuarantineReviewAction
+    reviewer_notes: str | None = Field(default=None, max_length=1000)
+
+
+class QuarantineReviewResponse(BaseModel):
+    """Result of a quarantine review action."""
+
+    memory_id: str
+    action: QuarantineReviewAction
+    status: str
+    message: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ─────────────────────────────────────────────────────────────────
+# ATTACK SIMULATOR SCHEMAS
+# ─────────────────────────────────────────────────────────────────
+
+class SimulationRequest(BaseModel):
+    """Submission for the Attack Simulator (inspected but NEVER stored)."""
+
+    content: str = Field(
+        ...,
+        min_length=MIN_CONTENT_LENGTH,
+        max_length=MAX_CONTENT_LENGTH,
+        description="Memory text to test against detectors and policies.",
+    )
+    source: MemorySource = Field(default=MemorySource.CONVERSATION)
+    user_id: str = Field(default="simulator_user", min_length=1, max_length=256)
+    session_id: str | None = Field(default=None, max_length=256)
+    metadata: dict[str, Any] | None = None
+
+
+class SimulationResponse(BaseModel):
+    """Result of an Attack Simulator run."""
+
+    decision: Decision
+    reason: str
+    risk_score: int = Field(..., ge=0, le=100)
+    risk_level: RiskLevel
+    findings: list[DetectorFinding] = Field(default_factory=list)
+    score_explanation: str
+    is_simulation: bool = True
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+

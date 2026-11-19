@@ -9,6 +9,7 @@ metadata, route registration, and centralized exception handling.
 from __future__ import annotations
 
 from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import memory
@@ -24,6 +25,15 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+    )
+
+    # Enable CORS for the dashboard frontend and external agent clients
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Register API routes under /api
