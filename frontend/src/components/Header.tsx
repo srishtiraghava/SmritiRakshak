@@ -1,68 +1,75 @@
 import React from 'react';
-import { Shield, RefreshCw, Database } from 'lucide-react';
+import { Database, Menu, RefreshCw, Shield, X } from 'lucide-react';
 import { HealthResponse } from '../api/types';
 
 interface HeaderProps {
   health: HealthResponse | null;
   loading: boolean;
+  navigationOpen: boolean;
+  onToggleNavigation: () => void;
   onRefresh: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ health, loading, onRefresh }) => {
-  const isHealthy = health?.status === 'healthy';
-  const isDbConnected = health?.database === 'connected';
+export const Header: React.FC<HeaderProps> = ({
+  health,
+  loading,
+  navigationOpen,
+  onToggleNavigation,
+  onRefresh,
+}) => {
+  const healthy = health?.status === 'healthy';
+  const databaseConnected = health?.database === 'connected';
+  const firewallTone = !health?.status ? '' : healthy ? 'is-healthy' : health.status === 'degraded' ? 'is-warning' : 'is-error';
+  const databaseTone = !health?.database ? '' : databaseConnected ? 'is-healthy' : 'is-error';
 
   return (
-    <header className="h-16 border-b border-cyber-border bg-cyber-surface/90 backdrop-blur px-6 flex items-center justify-between sticky top-0 z-30">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-cyber-card border border-cyber-borderLight flex items-center justify-center text-cyber-accent shadow-sm">
-          <Shield className="w-5 h-5 text-cyber-accent" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-semibold text-slate-100 text-sm tracking-wide font-mono uppercase">
-              SmritiRakshak
-            </h1>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyber-card text-cyber-accent border border-cyber-border">
-              v{health?.version || '0.1.0'}
-            </span>
+    <header className="topbar">
+      <div className="topbar-start">
+        <button
+          className="menu-toggle"
+          type="button"
+          aria-label={navigationOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={navigationOpen}
+          aria-controls="primary-navigation"
+          onClick={onToggleNavigation}
+        >
+          {navigationOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+        <div className="brand-lockup">
+          <span className="brand-mark" aria-hidden="true"><Shield size={19} strokeWidth={1.8} /></span>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <p className="brand-name">SmritiRakshak</p>
+              {health?.version && <span className="version-tag">v{health.version}</span>}
+            </div>
+            <p className="brand-subtitle">AI memory security</p>
           </div>
-          <p className="text-[11px] text-cyber-muted font-sans hidden sm:block">
-            AI Agent Memory Security Firewall • OWASP ASI-06
-          </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* Status Indicators */}
-        <div className="hidden md:flex items-center gap-2">
-          {/* Engine Status */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyber-card border border-cyber-border text-xs font-mono">
-            <span className={`w-2 h-2 rounded-full ${isHealthy ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-            <span className="text-slate-300 text-[11px]">FIREWALL:</span>
-            <span className={`text-[11px] font-semibold ${isHealthy ? 'text-emerald-400' : 'text-red-400'}`}>
-              {health?.status ? health.status.toUpperCase() : 'CONNECTING...'}
-            </span>
+      <div className="topbar-end">
+        <div className="health-list" aria-label="Service health">
+          <div className="health-item" role="status" aria-label={`Firewall: ${health?.status || 'unknown'}`} title={`Firewall: ${health?.status || 'unknown'}`}>
+            <span className={`health-dot ${firewallTone}`} aria-hidden="true" />
+            <span>Firewall</span>
+            <span className="health-value">{health?.status || 'Checking'}</span>
           </div>
-
-          {/* Database Status */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyber-card border border-cyber-border text-xs font-mono">
-            <Database className="w-3 h-3 text-cyber-muted" />
-            <span className="text-slate-300 text-[11px]">POSTGRES:</span>
-            <span className={`text-[11px] font-semibold ${isDbConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {health?.database ? health.database.toUpperCase() : 'UNKNOWN'}
-            </span>
+          <div className="health-item" role="status" aria-label={`PostgreSQL: ${health?.database || 'unknown'}`} title={`PostgreSQL: ${health?.database || 'unknown'}`}>
+            <Database size={14} aria-hidden="true" />
+            <span>PostgreSQL</span>
+            <span className={`health-dot ${databaseTone}`} aria-hidden="true" />
+            <span className="health-value">{health?.database || 'Checking'}</span>
           </div>
         </div>
-
-        {/* Sync / Refresh Button */}
         <button
+          className="icon-button"
+          type="button"
           onClick={onRefresh}
           disabled={loading}
-          title="Refresh telemetry and records"
-          className="p-2 rounded bg-cyber-card hover:bg-cyber-surfaceHover border border-cyber-border text-cyber-muted hover:text-slate-200 transition-colors disabled:opacity-50"
+          aria-label={loading ? 'Refreshing service status' : 'Refresh service status'}
+          title="Refresh service status and telemetry"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-cyber-accent' : ''}`} />
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
     </header>

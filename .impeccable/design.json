@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-20T16:45:00+05:30",
+  "title": "Design System: SmritiRakshak",
+  "seededFrom": {
+    "seed": "seed:3b0e2b266e04178d",
+    "direction": "The Roll - Evidence docket",
+    "surfaceBrief": ".impeccable/surfaces/frontend-src-app-tsx.md"
+  },
+  "extensions": {
+    "colorMeta": {
+      "canvas": { "role": "neutral", "displayName": "Soft Sage Canvas", "canonical": "#e9efe9", "tonalRamp": ["#e9efe9", "#e5ece5", "#f4f6f2", "#edf2ed", "#dfe9e0", "#cbd7cc", "#9eafa2", "#293d34"] },
+      "shell": { "role": "neutral", "displayName": "Sage Shell", "canonical": "#e5ece5", "tonalRamp": ["#e9efe9", "#e5ece5", "#f4f6f2", "#edf2ed", "#dfe9e0", "#cbd7cc", "#9eafa2", "#293d34"] },
+      "surface": { "role": "neutral", "displayName": "Warm Near-White", "canonical": "#f4f6f2", "tonalRamp": ["#e9efe9", "#e5ece5", "#f4f6f2", "#edf2ed", "#dfe9e0", "#cbd7cc", "#9eafa2", "#293d34"] },
+      "surface-raised": { "role": "neutral", "displayName": "Raised Sage Surface", "canonical": "#edf2ed", "tonalRamp": ["#e9efe9", "#e5ece5", "#f4f6f2", "#edf2ed", "#dfe9e0", "#cbd7cc", "#9eafa2", "#293d34"] },
+      "surface-hover": { "role": "neutral", "displayName": "Sage Hover", "canonical": "#dfe9e0", "tonalRamp": ["#e9efe9", "#e5ece5", "#f4f6f2", "#edf2ed", "#dfe9e0", "#cbd7cc", "#9eafa2", "#293d34"] },
+      "line": { "role": "neutral", "displayName": "Sage Rule", "canonical": "#cbd7cc", "tonalRamp": ["#f4f6f2", "#edf2ed", "#dfe9e0", "#cbd7cc", "#9eafa2", "#74877a", "#4d6358", "#293d34"] },
+      "line-strong": { "role": "neutral", "displayName": "Strong Sage Rule", "canonical": "#9eafa2", "tonalRamp": ["#f4f6f2", "#edf2ed", "#dfe9e0", "#cbd7cc", "#9eafa2", "#74877a", "#4d6358", "#293d34"] },
+      "ink": { "role": "neutral", "displayName": "Moss Ink", "canonical": "#293d34", "tonalRamp": ["#f4f6f2", "#dfe9e0", "#cbd7cc", "#9eafa2", "#74877a", "#4d6358", "#293d34", "#17251e"] },
+      "muted": { "role": "neutral", "displayName": "Muted Moss", "canonical": "#4d6358", "tonalRamp": ["#f4f6f2", "#dfe9e0", "#cbd7cc", "#9eafa2", "#74877a", "#4d6358", "#293d34", "#17251e"] },
+      "quiet": { "role": "neutral", "displayName": "Quiet Sage", "canonical": "#74877a", "tonalRamp": ["#f4f6f2", "#dfe9e0", "#cbd7cc", "#9eafa2", "#74877a", "#4d6358", "#293d34", "#17251e"] },
+      "emerald": { "role": "primary", "displayName": "Forest Green", "canonical": "#293f35", "tonalRamp": ["#f4f6f2", "#dfe9e0", "#cbd7cc", "#9eafa2", "#7c9782", "#526f5d", "#293f35", "#17251e"] },
+      "emerald-deep": { "role": "secondary", "displayName": "Pale Forest Sage", "canonical": "#d6e3d7", "tonalRamp": ["#f4f6f2", "#edf2ed", "#d6e3d7", "#b5ccb9", "#8aa694", "#668170", "#3e5e4b", "#293f35"] },
+      "cyan": { "role": "secondary", "displayName": "Muted Teal", "canonical": "#467f81", "tonalRamp": ["#f4f6f2", "#e2eeee", "#b7cdcc", "#8eafae", "#6b9798", "#467f81", "#315e61", "#1e3e41"] },
+      "success": { "role": "tertiary", "displayName": "Trusted Green", "canonical": "#3e704f", "tonalRamp": ["#f4f6f2", "#e1eee4", "#b6d0bd", "#8caf98", "#639074", "#3e704f", "#2d523a", "#1d3527"] },
+      "warning": { "role": "tertiary", "displayName": "Amber Signal", "canonical": "#94661c", "tonalRamp": ["#f4f6f2", "#f4eddc", "#e4d3aa", "#c8a765", "#aa813d", "#94661c", "#704a14", "#4a300e"] },
+      "danger": { "role": "tertiary", "displayName": "Warm Coral", "canonical": "#a64d44", "tonalRamp": ["#f4f6f2", "#f4e4e1", "#e3bbb5", "#cf8f85", "#ba6a60", "#a64d44", "#7c3933", "#512721"] },
+      "info": { "role": "secondary", "displayName": "Muted Teal Information", "canonical": "#467f81", "tonalRamp": ["#f4f6f2", "#e2eeee", "#b7cdcc", "#8eafae", "#6b9798", "#467f81", "#315e61", "#1e3e41"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Operational headline", "purpose": "Compact responsive page titles." },
+      "body": { "displayName": "Workspace sans", "purpose": "Readable prose, tables, and controls." },
+      "label": { "displayName": "Utility label", "purpose": "Compact labels and state badges." },
+      "data": { "displayName": "Evidence mono", "purpose": "Identifiers, hashes, timestamps, and technical values." }
+    },
+    "shadows": [
+      { "name": "dialog", "value": "0 24px 64px rgb(31 55 43 / 22%)", "purpose": "Separate focused dialogs from the sage workspace." }
+    ],
+    "motion": [
+      { "name": "control-state", "value": "140ms ease", "purpose": "Brief hover and border transitions for controls." },
+      { "name": "navigation-drawer", "value": "180ms cubic-bezier(.2,.8,.2,1)", "purpose": "Mobile navigation entry and exit." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Respect reduced-motion preferences." }
+    ],
+    "breakpoints": [
+      { "name": "mobile-navigation", "value": "720px" },
+      { "name": "compact-mobile", "value": "430px" },
+      { "name": "tablet-layout", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main action within a page or decision flow.",
+      "html": "<button class=\"ds-btn-primary\">Attack simulator</button>",
+      "css": ".ds-btn-primary { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; color: #f4f6f2; background: #293f35; border: 1px solid #293f35; border-radius: 8px; font: 620 12px system-ui, sans-serif; cursor: pointer; transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease; } .ds-btn-primary:hover { background: #8ddcc0; transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 2px solid #467f81; outline-offset: 3px; } .ds-btn-primary:disabled { transform: none; opacity: .52; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A supporting action in the neutral workspace palette.",
+      "html": "<button class=\"ds-btn-secondary\">Refresh telemetry</button>",
+      "css": ".ds-btn-secondary { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; color: #293d34; background: #f4f6f2; border: 1px solid #9eafa2; border-radius: 8px; font: 620 12px system-ui, sans-serif; cursor: pointer; transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease; } .ds-btn-secondary:hover { background: #dfe9e0; transform: translateY(-1px); } .ds-btn-secondary:focus-visible { outline: 2px solid #467f81; outline-offset: 3px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "An inset near-white field for search, filtering, and review notes.",
+      "html": "<label class=\"ds-field-wrap\"><span>Search records</span><input class=\"ds-field\" placeholder=\"Search by ID or source\"></label>",
+      "css": ".ds-field-wrap { display: grid; gap: 7px; color: #4d6358; font: 600 12px system-ui, sans-serif; } .ds-field { width: 100%; min-height: 40px; padding: 9px 11px; color: #293d34; background: #f7f8f5; border: 1px solid #9eafa2; border-radius: 8px; font: 12px system-ui, sans-serif; } .ds-field::placeholder { color: #74877a; opacity: 1; } .ds-field:focus-visible { border-color: #467f81; outline: 2px solid rgb(70 127 129 / 20%); outline-offset: 1px; }"
+    },
+    {
+      "name": "Evidence Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "A flat, bordered surface for a focused group of live evidence.",
+      "html": "<section class=\"ds-panel\"><h2>Risk score distribution</h2><p>Records grouped by their stored risk band.</p></section>",
+      "css": ".ds-panel { padding: 20px; color: #293d34; background: #f4f6f2; border: 1px solid #cbd7cc; border-radius: 12px; } .ds-panel h2 { margin: 0; font: 630 14px/1.3 system-ui, sans-serif; } .ds-panel p { margin: 6px 0 0; color: #4d6358; font: 12px/1.5 system-ui, sans-serif; }"
+    },
+    {
+      "name": "Allowed Status Badge",
+      "kind": "chip",
+      "refersTo": "status-success",
+      "description": "A compact named positive state with text and a tint.",
+      "html": "<span class=\"ds-status\"><span aria-hidden=\"true\">&#9679;</span> Allowed</span>",
+      "css": ".ds-status { min-height: 24px; display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; color: #3e704f; background: #e1eee4; border: 1px solid #98b09d; border-radius: 6px; font: 700 10px/1.2 system-ui, sans-serif; letter-spacing: .035em; white-space: nowrap; } .ds-status span { font-size: 9px; }"
+    },
+    {
+      "name": "Active Navigation Item",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "The active destination in the operational navigation rail.",
+      "html": "<a class=\"ds-nav-item\" href=\"#overview\" aria-current=\"page\">Security overview</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; min-height: 40px; padding: 0 12px; color: #293d34; background: #d5e4d8; border: 1px solid #8aa694; border-radius: 8px; font: 550 12px system-ui, sans-serif; text-decoration: none; } .ds-nav-item:hover { background: #e5ece6; } .ds-nav-item:focus-visible { outline: 2px solid #467f81; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Roll - Evidence docket",
+    "overview": "SmritiRakshak is an operational workspace for developers building AI agents. Each memory is treated as an evidence record whose risk score, detector findings, and current disposition resolve into one legible decision spine. Soft sage grounds the workspace, warm near-white surfaces hold evidence, and deep forest green anchors primary actions and trusted states. Muted teal carries secondary emphasis and keyboard focus.",
+    "keyCharacteristics": [
+      "A consistent risk, findings, and disposition hierarchy wherever a memory is inspected.",
+      "Data comes from live API responses; status and empty states remain explicit.",
+      "System sans is used for prose; tabular numerals and monospace are reserved for measurements and identifiers."
+    ],
+    "rules": [
+      { "name": "The Named-State Rule", "body": "Amber and coral communicate review or danger; never use them as decoration. Every colored state also has a readable label.", "section": "colors" },
+      { "name": "The Evidence-First Type Rule", "body": "Keep prose in the system sans; use monospace only for code, IDs, hashes, timestamps, and measured values.", "section": "typography" }
+    ],
+    "dos": [
+      "Do keep memory risk, findings, and disposition together when inspecting a record.",
+      "Do use live service responses and show explicit loading, error, empty, and disabled states.",
+      "Do reserve forest green, teal, amber, and coral for their defined functional roles.",
+      "Do keep a visible keyboard focus outline and support reduced motion."
+    ],
+    "donts": [
+      "Don't use oversized metric cards or decorative threat charts in place of evidence.",
+      "Don't communicate a security state by color alone.",
+      "Don't apply monospace to ordinary prose or use glow, pure-black surfaces, or decorative gradients."
+    ]
+  }
+}

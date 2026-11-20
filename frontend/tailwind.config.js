@@ -1,44 +1,42 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
         cyber: {
-          bg: '#07090e',
-          surface: '#0f141d',
-          surfaceHover: '#151c28',
-          card: '#121824',
-          border: '#1f293d',
-          borderLight: '#2c3a54',
-          muted: '#8b9bb4',
-          dim: '#4f5e74',
-          accent: '#38bdf8',
+          bg: '#e9efe9',
+          surface: '#e5ece5',
+          surfaceHover: '#dfe9e0',
+          card: '#f4f6f2',
+          border: '#cbd7cc',
+          borderLight: '#9eafa2',
+          muted: '#4d6358',
+          dim: '#74877a',
+          accent: '#293f35',
+          cyan: '#467f81',
         },
         shield: {
-          allow: '#10b981',
-          allowBg: 'rgba(16, 185, 129, 0.08)',
-          allowBorder: 'rgba(16, 185, 129, 0.25)',
-          flag: '#f59e0b',
-          flagBg: 'rgba(245, 158, 11, 0.08)',
-          flagBorder: 'rgba(245, 158, 11, 0.25)',
-          quarantine: '#f97316',
-          quarantineBg: 'rgba(249, 115, 22, 0.08)',
-          quarantineBorder: 'rgba(249, 115, 22, 0.25)',
-          block: '#ef4444',
-          blockBg: 'rgba(239, 68, 68, 0.08)',
-          blockBorder: 'rgba(239, 68, 68, 0.25)',
-        }
+          allow: '#3e704f',
+          allowBg: 'rgba(62, 112, 79, 0.10)',
+          allowBorder: 'rgba(62, 112, 79, 0.30)',
+          flag: '#94661c',
+          flagBg: 'rgba(148, 102, 28, 0.10)',
+          flagBorder: 'rgba(148, 102, 28, 0.30)',
+          quarantine: '#a56236',
+          quarantineBg: 'rgba(165, 98, 54, 0.10)',
+          quarantineBorder: 'rgba(165, 98, 54, 0.30)',
+          block: '#a64d44',
+          blockBg: 'rgba(166, 77, 68, 0.10)',
+          blockBorder: 'rgba(166, 77, 68, 0.30)',
+        },
       },
       fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'monospace'],
-        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-      }
+        mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
+        sans: ['system-ui', 'Segoe UI', 'sans-serif'],
+      },
     },
   },
   plugins: [],
-}
+};

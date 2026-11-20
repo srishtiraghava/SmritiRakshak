@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, RefreshCw, Copy, Check, Fingerprint, Search, Filter } from 'lucide-react';
+import { RefreshCw, Copy, Check, Fingerprint, Search, Filter } from 'lucide-react';
 import { api } from '../api/client';
 import { AuditEventItemResponse } from '../api/types';
 import { RiskScoreGauge } from '../components/RiskScoreGauge';
+import { PageHeader } from '../components/PageHeader';
 
 export const AuditTrailPage: React.FC = () => {
   const [events, setEvents] = useState<AuditEventItemResponse[]>([]);
@@ -55,84 +56,76 @@ export const AuditTrailPage: React.FC = () => {
   }, [events, eventTypeFilter, searchQuery]);
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cyber-border">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100 font-mono tracking-wide flex items-center gap-2">
-            <FileText className="w-5 h-5 text-red-400" />
-            SECURITY AUDIT TRAIL
-          </h2>
-          <p className="text-xs text-cyber-muted mt-0.5">
-            Tamper-evident forensics log of blocked memory injection attempts and security rejections
-          </p>
-        </div>
-
-        <button
+    <section className="page-view" aria-labelledby="audit-title">
+      <PageHeader
+        titleId="audit-title"
+        title="Audit trail"
+        description="Review blocked memories and quarantine rejections. Search event details and copy a full content fingerprint for correlation."
+        actions={<button
+          type="button"
           onClick={loadEvents}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyber-card border border-cyber-border text-xs font-mono text-slate-300 hover:text-white transition-colors"
+          className="btn"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
-      </div>
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh events
+        </button>}
+      />
 
       {/* Security Guarantee Note */}
-      <div className="p-4 rounded-xl bg-red-950/10 border border-red-900/30 text-xs space-y-1.5">
-        <div className="flex items-center gap-2 text-red-400 font-semibold font-mono">
-          <Fingerprint className="w-4 h-4" />
-          <span>NON-RETENTION GUARANTEE</span>
+      <div className="notice notice-info">
+        <Fingerprint aria-hidden="true" />
+        <div>
+          <h2>Blocked content is represented by a fingerprint</h2>
+          <p>
+            Blocked memory payloads are not retained as plaintext. The audit record stores a SHA-256 fingerprint for forensic correlation and deduplication.
+          </p>
         </div>
-        <p className="text-slate-300 text-[11px] leading-relaxed">
-          SmritiRakshak enforces a strict zero-retention policy for blocked memory content: malicious payloads are{' '}
-          <strong className="text-red-300">never stored as plaintext</strong> in any database table. Instead, a
-          cryptographic SHA-256 fingerprint is recorded to enable forensics, incident correlation, and deduplication
-          without memory contamination.
-        </p>
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-cyber-card p-3 rounded-xl border border-cyber-border text-xs font-mono">
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-1 max-w-md">
-          <Search className="w-4 h-4 text-cyber-muted flex-shrink-0" />
+      <div className="filter-bar panel">
+        <label className="search-field">
+          <Search aria-hidden="true" />
           <input
             type="text"
+            aria-label="Search audit events"
             placeholder="Search by event ID, reason, user, or SHA-256..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-cyber-bg border border-cyber-border rounded px-2.5 py-1.5 text-slate-200 placeholder-cyber-muted focus:outline-none focus:border-red-500/50 text-xs"
+            className="field"
           />
-        </div>
+        </label>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter className="w-3.5 h-3.5 text-cyber-muted" />
-          <span className="text-cyber-muted text-[11px]">Type:</span>
+          <label className="text-cyber-muted text-xs" htmlFor="audit-type-filter">Event type</label>
           <select
+            id="audit-type-filter"
             value={eventTypeFilter}
             onChange={(e) => setEventTypeFilter(e.target.value)}
-            className="bg-cyber-bg border border-cyber-border rounded px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-red-500/50"
+            className="field-select"
           >
             <option value="ALL">All Event Types</option>
             <option value="MEMORY_BLOCKED">MEMORY_BLOCKED</option>
             <option value="QUARANTINE_REJECTED">QUARANTINE_REJECTED</option>
           </select>
-          <span className="text-cyber-muted text-[11px] ml-2">
+          <span className="inline-message" aria-live="polite">
             Showing {filteredEvents.length} of {events.length}
           </span>
         </div>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg bg-red-950/30 border border-red-900/50 text-red-300 text-xs font-mono">
+        <div className="notice notice-error" role="alert">
+          <Fingerprint aria-hidden="true" />
           {error}
         </div>
       )}
 
       {/* Audit Log Table */}
-      <div className="rounded-xl border border-cyber-border bg-cyber-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
+      <div className="table-frame">
+        <div className="table-scroll">
+          <table aria-label="Security audit events">
             <thead className="bg-cyber-bg/80 border-b border-cyber-border text-cyber-muted uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="px-4 py-3 font-semibold">Event Type</th>
@@ -164,7 +157,7 @@ export const AuditTrailPage: React.FC = () => {
                 filteredEvents.map((evt) => (
                   <tr key={evt.id} className="hover:bg-cyber-surfaceHover/70 transition-colors">
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded font-mono text-[10px] uppercase font-semibold bg-red-950/50 text-red-400 border border-red-900/40">
+                      <span className="status-badge status-block table-mono">
                         {evt.event_type}
                       </span>
                     </td>
@@ -189,9 +182,11 @@ export const AuditTrailPage: React.FC = () => {
                           {evt.content_sha256.slice(0, 16)}...
                         </span>
                         <button
+                          type="button"
                           onClick={() => handleCopySha(evt.content_sha256)}
                           title="Copy full SHA-256 fingerprint"
-                          className="p-1 rounded hover:bg-cyber-border text-cyber-muted hover:text-white transition-colors"
+                          className="icon-button"
+                          aria-label={copiedId === evt.content_sha256 ? 'Fingerprint copied' : 'Copy full SHA-256 fingerprint'}
                         >
                           {copiedId === evt.content_sha256 ? (
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -201,8 +196,8 @@ export const AuditTrailPage: React.FC = () => {
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-cyber-muted whitespace-nowrap text-[11px]">
-                      {new Date(evt.created_at).toLocaleString()}
+                    <td className="table-subtle whitespace-nowrap">
+                      <time dateTime={evt.created_at}>{new Date(evt.created_at).toLocaleString()}</time>
                     </td>
                   </tr>
                 ))
@@ -211,6 +206,6 @@ export const AuditTrailPage: React.FC = () => {
           </table>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

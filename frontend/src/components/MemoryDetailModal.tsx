@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
 import { MemoryItemResponse } from '../api/types';
 import { DecisionBadge, SeverityBadge } from './StatusBadge';
 import { RiskScoreGauge } from './RiskScoreGauge';
@@ -9,151 +9,123 @@ interface MemoryDetailModalProps {
   onClose: () => void;
 }
 
-export const MemoryDetailModal: React.FC<MemoryDetailModalProps> = ({
-  memory,
-  onClose,
-}) => {
+export const MemoryDetailModal: React.FC<MemoryDetailModalProps> = ({ memory, onClose }) => {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  useEffect(() => {
+    if (!memory) return;
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCloseRef.current();
+      if (event.key === 'Tab' && dialogRef.current) {
+        const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      returnFocusRef.current?.focus();
+    };
+  }, [memory?.id]);
+
   if (!memory) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-cyber-surface border border-cyber-border rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-        {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-cyber-border flex items-center justify-between bg-cyber-card">
-          <div className="flex items-center gap-3">
-            <DecisionBadge decision={memory.decision} size="md" />
-            <div className="font-mono text-xs text-cyber-muted truncate max-w-md">
-              {memory.id}
-            </div>
+    <div className="modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section ref={dialogRef} className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="memory-dialog-title" tabIndex={-1}>
+        <header className="dialog-header">
+          <div className="dialog-identity">
+            <h2 id="memory-dialog-title" className="dialog-title">Memory record</h2>
+            <span className="table-mono dialog-id">{memory.id}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-cyber-surface text-cyber-muted hover:text-slate-200 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          <div className="dialog-header-actions">
+            <DecisionBadge decision={memory.decision} size="sm" />
+            <button ref={closeButtonRef} type="button" className="icon-button" onClick={onClose} aria-label="Close memory details"><X size={17} /></button>
+          </div>
+        </header>
 
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5 text-sm">
-          {/* Metadata Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-cyber-bg border border-cyber-border/60 text-xs font-mono">
-            <div>
-              <span className="text-cyber-muted block text-[10px] uppercase">Source</span>
-              <span className="text-slate-200 font-medium">{memory.source}</span>
-            </div>
-            <div>
-              <span className="text-cyber-muted block text-[10px] uppercase">User ID</span>
-              <span className="text-slate-200 font-medium truncate block">{memory.user_id}</span>
-            </div>
-            <div>
-              <span className="text-cyber-muted block text-[10px] uppercase">Risk Score</span>
-              <RiskScoreGauge score={memory.risk_score} />
-            </div>
-            <div>
-              <span className="text-cyber-muted block text-[10px] uppercase">Risk Level</span>
-              <SeverityBadge severity={memory.risk_level} />
-            </div>
+        <div className="dialog-body detail-body">
+          <div className="decision-spine detail-spine" aria-label={`Risk score ${memory.risk_score}, risk level ${memory.risk_level}, decision ${memory.decision}`}>
+            <div><span className="result-label">Risk score</span><strong><RiskScoreGauge score={memory.risk_score} /></strong></div>
+            <span className="decision-spine-separator" aria-hidden="true">›</span>
+            <div><span className="result-label">Severity</span><SeverityBadge severity={memory.risk_level} /></div>
+            <span className="decision-spine-separator" aria-hidden="true">›</span>
+            <div><span className="result-label">Current tier</span><DecisionBadge decision={memory.decision} size="sm" /></div>
           </div>
 
-          {/* Content Section */}
-          <div className="space-y-1.5">
-            <span className="text-xs font-mono uppercase tracking-wider text-cyber-muted font-semibold">
-              Memory Content Payload
-            </span>
+          <dl className="metadata-grid">
+            <div><dt>Source</dt><dd>{memory.source}</dd></div>
+            <div><dt>User ID</dt><dd>{memory.user_id}</dd></div>
+            <div><dt>Created</dt><dd><time dateTime={memory.created_at}>{new Date(memory.created_at).toLocaleString()}</time></dd></div>
+            <div><dt>Session</dt><dd>{memory.session_id || 'Not provided'}</dd></div>
+          </dl>
+
+          <section className="detail-section" aria-labelledby="memory-content-title">
+            <h3 id="memory-content-title" className="panel-title">Memory content</h3>
             {memory.content ? (
-              <div className="p-3.5 rounded-lg bg-cyber-card border border-cyber-border font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-                {memory.content}
-              </div>
+              <pre className="evidence-block detail-content">{memory.content}</pre>
             ) : (
-              <div className="p-3.5 rounded-lg bg-red-950/20 border border-red-900/40 text-xs text-red-300 flex items-start gap-2.5">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+              <div className="notice notice-error" role="note">
+                <AlertTriangle aria-hidden="true" />
                 <div>
-                  <p className="font-semibold text-red-200">Untrusted Content Withheld Under Policy</p>
-                  <p className="text-[11px] text-red-300/80 mt-1">
-                    SmritiRakshak guarantees that malicious or blocked memory content is never retained
-                    in trusted memory. A cryptographic SHA-256 fingerprint is recorded instead:
-                  </p>
-                  {memory.content_sha256 && (
-                    <div className="mt-2 font-mono text-[11px] bg-red-950/60 p-2 rounded border border-red-800/40 select-all">
-                      {memory.content_sha256}
-                    </div>
-                  )}
+                  <h3>Content withheld by policy</h3>
+                  <p>This blocked payload is not retained as plaintext. Its SHA-256 fingerprint is available for correlation.</p>
+                  {memory.content_sha256 && <code className="fingerprint-value">{memory.content_sha256}</code>}
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Quarantine Reason (if applicable) */}
           {memory.quarantine_reason && (
-            <div className="p-3 rounded-lg bg-orange-950/20 border border-orange-900/40 text-xs">
-              <span className="font-mono text-[10px] uppercase text-orange-400 block font-semibold mb-1">
-                Quarantine Isolation Reason
-              </span>
-              <p className="text-orange-200 text-xs">{memory.quarantine_reason}</p>
-            </div>
+            <section className="notice notice-warning" aria-labelledby="quarantine-reason-title">
+              <AlertTriangle aria-hidden="true" />
+              <div><h3 id="quarantine-reason-title">Quarantine reason</h3><p>{memory.quarantine_reason}</p></div>
+            </section>
           )}
 
-          {/* Detector Findings */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono uppercase tracking-wider text-cyber-muted font-semibold">
-                Security Detector Findings ({memory.findings_json.length})
-              </span>
+          <section className="detail-section" aria-labelledby="memory-findings-title">
+            <div className="panel-heading">
+              <div><h3 id="memory-findings-title" className="panel-title">Detector findings</h3><p className="panel-description">{memory.findings_json.length} finding{memory.findings_json.length === 1 ? '' : 's'} recorded</p></div>
             </div>
-
             {memory.findings_json.length === 0 ? (
-              <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-900/30 text-xs text-emerald-400 font-mono">
-                ✓ No threat findings detected. Content passed rule-based inspection.
-              </div>
+              <div className="notice notice-success" role="status"><p>No detector findings were recorded for this memory.</p></div>
             ) : (
-              <div className="space-y-2">
-                {memory.findings_json.map((finding, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-lg bg-cyber-card border border-cyber-border/80 space-y-1.5 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-semibold text-slate-200">
-                          {finding.detector_name}
-                        </span>
-                        <SeverityBadge severity={finding.severity} size="sm" />
-                      </div>
-                      <span className="font-mono text-[11px] text-cyber-muted">
-                        +{finding.risk_points} pts
-                      </span>
-                    </div>
-
-                    <p className="text-slate-300 text-[11px]">{finding.description}</p>
-
-                    <div className="font-mono text-[11px] bg-cyber-bg/80 p-2 rounded border border-cyber-border text-amber-300">
-                      <span className="text-cyber-muted">Evidence: </span>
-                      {finding.evidence}
-                    </div>
-                  </div>
+              <div className="finding-list">
+                {memory.findings_json.map((finding, index) => (
+                  <article key={`${finding.detector_name}-${index}`} className="finding-row">
+                    <div className="finding-heading"><strong>{finding.detector_name}</strong><span className="finding-points table-mono">+{finding.risk_points} pts</span><SeverityBadge severity={finding.severity} /></div>
+                    <p>{finding.description}</p>
+                    <div className="evidence-block"><span className="text-cyber-muted">Evidence</span> · {finding.evidence}</div>
+                  </article>
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Timestamps & Extra Metadata */}
-          <div className="flex items-center justify-between pt-2 border-t border-cyber-border/60 text-[11px] font-mono text-cyber-muted">
-            <span>CREATED: {new Date(memory.created_at).toLocaleString()}</span>
-            {memory.session_id && <span>SESSION: {memory.session_id}</span>}
-          </div>
+          {memory.content_sha256 && memory.content && (
+            <section className="detail-section">
+              <h3 className="panel-title">Content fingerprint</h3>
+              <code className="fingerprint-value">{memory.content_sha256}</code>
+            </section>
+          )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-cyber-border bg-cyber-card flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 rounded bg-cyber-border hover:bg-cyber-surfaceHover text-slate-200 text-xs font-medium transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+        <footer className="dialog-footer">
+          <button type="button" onClick={onClose} className="btn">Close details</button>
+        </footer>
+      </section>
     </div>
   );
 };

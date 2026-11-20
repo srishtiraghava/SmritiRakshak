@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, RefreshCw, Filter, Key, Terminal } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, RefreshCw, Filter, Key, Terminal } from 'lucide-react';
 import { api } from '../api/client';
 import { ThreatItemResponse } from '../api/types';
 import { SeverityBadge, DecisionBadge } from '../components/StatusBadge';
+import { PageHeader } from '../components/PageHeader';
 
 export const ThreatsPage: React.FC = () => {
   const [threats, setThreats] = useState<ThreatItemResponse[]>([]);
@@ -37,31 +38,23 @@ export const ThreatsPage: React.FC = () => {
   });
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cyber-border">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100 font-mono tracking-wide flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-red-400" />
-            THREAT DETECTION INTELLIGENCE
-          </h2>
-          <p className="text-xs text-cyber-muted mt-0.5">
-            Log of detected prompt injections, role-hijacks, and credential exfiltrations
-          </p>
-        </div>
-
-        <button
+    <section className="page-view" aria-labelledby="threats-title">
+      <PageHeader
+        titleId="threats-title"
+        title="Threat detection"
+        description="Review rule-based findings, their severity, and the policy decision applied to each memory."
+        actions={<button
+          type="button"
           onClick={loadThreats}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyber-card border border-cyber-border text-xs font-mono text-slate-300 hover:text-white transition-colors"
+          className="btn"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh Threats</span>
-        </button>
-      </div>
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh findings
+        </button>}
+      />
 
       {/* Filter Controls */}
-      <div className="flex flex-wrap items-center gap-3 bg-cyber-card p-3 rounded-xl border border-cyber-border text-xs font-mono">
+      <div className="filter-bar panel" aria-label="Threat filters">
         <div className="flex items-center gap-1.5 text-cyber-muted">
           <Filter className="w-3.5 h-3.5" />
           <span>CATEGORY:</span>
@@ -70,12 +63,10 @@ export const ThreatsPage: React.FC = () => {
           {['all', 'prompt_injection', 'sensitive_data'].map((cat) => (
             <button
               key={cat}
+              type="button"
+              aria-pressed={categoryFilter === cat}
               onClick={() => setCategoryFilter(cat)}
-              className={`px-2.5 py-1 rounded text-xs transition-colors ${
-                categoryFilter === cat
-                  ? 'bg-cyber-surfaceHover text-cyber-accent font-semibold border border-cyber-borderLight'
-                  : 'text-cyber-muted hover:text-slate-200'
-              }`}
+              className={`filter-tab ${categoryFilter === cat ? 'is-active' : ''}`}
             >
               {cat === 'all' ? 'ALL' : cat.replace('_', ' ').toUpperCase()}
             </button>
@@ -91,12 +82,10 @@ export const ThreatsPage: React.FC = () => {
           {['all', 'critical', 'high', 'medium', 'low'].map((sev) => (
             <button
               key={sev}
+              type="button"
+              aria-pressed={severityFilter === sev}
               onClick={() => setSeverityFilter(sev)}
-              className={`px-2.5 py-1 rounded text-xs uppercase transition-colors ${
-                severityFilter === sev
-                  ? 'bg-cyber-surfaceHover text-cyber-accent font-semibold border border-cyber-borderLight'
-                  : 'text-cyber-muted hover:text-slate-200'
-              }`}
+              className={`filter-tab ${severityFilter === sev ? 'is-active' : ''}`}
             >
               {sev}
             </button>
@@ -105,7 +94,8 @@ export const ThreatsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg bg-red-950/30 border border-red-900/50 text-red-300 text-xs font-mono">
+        <div className="notice notice-error" role="alert">
+          <ShieldAlert aria-hidden="true" />
           {error}
         </div>
       )}
@@ -113,13 +103,15 @@ export const ThreatsPage: React.FC = () => {
       {/* Threat Incident Feed / Cards */}
       <div className="space-y-3">
         {loading ? (
-          <div className="py-16 text-center text-xs font-mono text-cyber-muted">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-cyber-accent" />
-            Scanning security findings across storage tiers...
+          <div className="loading-state" role="status">
+            <RefreshCw />
+            <p>Loading detected findings…</p>
           </div>
         ) : filteredThreats.length === 0 ? (
-          <div className="py-16 text-center text-xs font-mono text-cyber-muted rounded-xl border border-cyber-border bg-cyber-card">
-            No threat detections matching the active criteria.
+          <div className="empty-state panel">
+            <ShieldCheck size={22} aria-hidden="true" />
+            <strong>No matching findings</strong>
+            <p>{threats.length === 0 ? 'No threat findings are available.' : 'Try changing the category or severity filters.'}</p>
           </div>
         ) : (
           filteredThreats.map((threat) => {
@@ -127,12 +119,12 @@ export const ThreatsPage: React.FC = () => {
             return (
               <div
                 key={threat.id}
-                className="p-4 rounded-xl bg-cyber-card border border-cyber-border hover:border-cyber-borderLight transition-all space-y-3 shadow-sm"
+                className="panel threat-incident"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-cyber-border/40 pb-2.5">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-7 h-7 rounded flex items-center justify-center shrink-0 ${
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                         isInjection
                           ? 'bg-red-950/50 text-red-400 border border-red-900/40'
                           : 'bg-amber-950/50 text-amber-400 border border-amber-900/40'
@@ -145,7 +137,7 @@ export const ThreatsPage: React.FC = () => {
                       )}
                     </div>
                     <div>
-                      <span className="font-mono font-semibold text-xs text-slate-100 block">
+                      <span className="font-semibold text-sm text-slate-100 block break-all">
                         {threat.detector_name}
                       </span>
                       <span className="font-mono text-[10px] text-cyber-muted uppercase">
@@ -157,7 +149,7 @@ export const ThreatsPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <SeverityBadge severity={threat.severity} />
                     <DecisionBadge decision={threat.decision} size="sm" />
-                    <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-cyber-bg border border-cyber-border text-slate-200">
+                    <span className="table-mono text-xs font-semibold px-2.5 py-1 rounded-md bg-cyber-bg border border-cyber-border text-slate-200">
                       +{threat.risk_points} pts
                     </span>
                   </div>
@@ -171,23 +163,23 @@ export const ThreatsPage: React.FC = () => {
                     <span className="text-[10px] uppercase tracking-wider text-cyber-muted block font-semibold">
                       Redacted Detection Evidence
                     </span>
-                    <div className="text-amber-300 whitespace-pre-wrap break-all selection:bg-amber-950">
+                    <div className="text-amber-200 whitespace-pre-wrap break-all evidence-block">
                       {threat.evidence}
                     </div>
                   </div>
                 </div>
 
                 {/* Metadata Footer */}
-                <div className="flex items-center justify-between pt-1 text-[11px] font-mono text-cyber-muted">
-                  <span>USER: {threat.user_id}</span>
-                  {threat.memory_id && <span>MEMORY REF: {threat.memory_id}</span>}
-                  <span>{new Date(threat.timestamp).toLocaleString()}</span>
+                <div className="incident-meta">
+                  <span>User <strong>{threat.user_id}</strong></span>
+                  {threat.memory_id && <span>Memory <strong>{threat.memory_id}</strong></span>}
+                  <time dateTime={threat.timestamp}>{new Date(threat.timestamp).toLocaleString()}</time>
                 </div>
               </div>
             );
           })
         )}
       </div>
-    </div>
+    </section>
   );
 };

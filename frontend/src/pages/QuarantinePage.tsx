@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Lock,
   RefreshCw,
@@ -6,10 +6,12 @@ import {
   XCircle,
   AlertOctagon,
   Eye,
+  X,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { MemoryItemResponse } from '../api/types';
 import { RiskScoreGauge } from '../components/RiskScoreGauge';
+import { PageHeader } from '../components/PageHeader';
 
 interface QuarantinePageProps {
   onSelectMemory: (memory: MemoryItemResponse) => void;
@@ -30,6 +32,10 @@ export const QuarantinePage: React.FC<QuarantinePageProps> = ({
   const [reviewerNotes, setReviewerNotes] = useState<string>('');
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const reviewDialogRef = useRef<HTMLDivElement>(null);
+  const reviewTriggerRef = useRef<HTMLElement | null>(null);
+  const actionLoadingRef = useRef(actionLoading);
+  actionLoadingRef.current = actionLoading;
 
   const loadQuarantine = async () => {
     setLoading(true);
@@ -47,6 +53,32 @@ export const QuarantinePage: React.FC<QuarantinePageProps> = ({
   useEffect(() => {
     loadQuarantine();
   }, []);
+
+  useEffect(() => {
+    if (!selectedItem || !reviewAction) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !actionLoadingRef.current) {
+        setSelectedItem(null);
+        setReviewAction(null);
+        setReviewerNotes('');
+      }
+      if (event.key === 'Tab' && reviewDialogRef.current) {
+        const focusable = Array.from(reviewDialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      reviewTriggerRef.current?.focus();
+    };
+  }, [selectedItem, reviewAction]);
 
   const handleExecuteReview = async () => {
     if (!selectedItem || !reviewAction) return;
@@ -74,72 +106,61 @@ export const QuarantinePage: React.FC<QuarantinePageProps> = ({
   };
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cyber-border">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100 font-mono tracking-wide flex items-center gap-2">
-            <Lock className="w-5 h-5 text-orange-400" />
-            QUARANTINE ISOLATION CENTER
-          </h2>
-          <p className="text-xs text-cyber-muted mt-0.5">
-            High-risk memories physically isolated from agent execution awaiting security review
-          </p>
-        </div>
-
-        <button
+    <section className="page-view" aria-labelledby="quarantine-title">
+      <PageHeader
+        titleId="quarantine-title"
+        title="Quarantine review"
+        description="Inspect isolated memories and record a reviewer decision before releasing or rejecting them."
+        actions={<button
+          type="button"
           onClick={loadQuarantine}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyber-card border border-cyber-border text-xs font-mono text-slate-300 hover:text-white transition-colors"
+          className="btn"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
-      </div>
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh queue
+        </button>}
+      />
 
       {/* Action Notification Banner */}
-      {actionMessage && (
+      {actionMessage && (!selectedItem || actionMessage.type === 'success') && (
         <div
-          className={`p-3.5 rounded-lg border text-xs font-mono flex items-center justify-between ${
-            actionMessage.type === 'success'
-              ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
-              : 'bg-red-950/40 border-red-800 text-red-300'
-          }`}
+          role={actionMessage.type === 'success' ? 'status' : 'alert'}
+          className={`notice ${actionMessage.type === 'success' ? 'notice-success' : 'notice-error'}`}
         >
           <span>{actionMessage.text}</span>
           <button
             onClick={() => setActionMessage(null)}
-            className="text-cyber-muted hover:text-white text-xs"
+            type="button"
+            aria-label="Dismiss message"
+            className="btn-quiet"
           >
-            ✕
+            <X size={15} />
           </button>
         </div>
       )}
 
       {error && (
-        <div className="p-3.5 rounded-lg bg-red-950/30 border border-red-900/50 text-red-300 text-xs font-mono">
+        <div className="notice notice-error" role="alert">
+          <AlertOctagon aria-hidden="true" />
           {error}
         </div>
       )}
 
       {/* Security Architecture Notice */}
-      <div className="p-4 rounded-xl bg-orange-950/10 border border-orange-900/30 text-xs space-y-1.5">
-        <div className="flex items-center gap-2 text-orange-400 font-semibold font-mono">
-          <AlertOctagon className="w-4 h-4" />
-          <span>ISOLATION PROTOCOL ACTIVE</span>
+      <div className="notice notice-warning">
+        <Lock aria-hidden="true" />
+        <div>
+          <h2>Isolated from trusted memory</h2>
+          <p>
+            Quarantined entries remain separate from trusted memory until reviewed. Releasing an item moves it to trusted memory; rejecting it purges the payload and records an audit event.
+          </p>
         </div>
-        <p className="text-slate-300 text-[11px] leading-relaxed">
-          Entries in this quarantine tier are stored in the segregated{' '}
-          <code className="text-orange-300 bg-orange-950/40 px-1 py-0.5 rounded font-mono">quarantined_memories</code>{' '}
-          table. They are strictly inaccessible to AI agent context windows. Releasing an item initiates a live database transaction
-          moving it into trusted memory. Rejecting permanently purges the payload and logs an immutable audit event.
-        </p>
       </div>
 
       {/* Quarantined Records Table */}
-      <div className="rounded-xl border border-cyber-border bg-cyber-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
+      <div className="table-frame">
+        <div className="table-scroll">
+          <table aria-label="Quarantined memory records">
             <thead className="bg-cyber-bg/80 border-b border-cyber-border text-cyber-muted uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="px-4 py-3 font-semibold">Memory ID</th>
@@ -171,7 +192,7 @@ export const QuarantinePage: React.FC<QuarantinePageProps> = ({
                     key={item.id}
                     className="hover:bg-cyber-surfaceHover/70 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-orange-400 whitespace-nowrap">
+                    <td className="table-link whitespace-nowrap">
                       {item.id}
                     </td>
                     <td className="px-4 py-3 max-w-sm text-slate-300 truncate">
@@ -193,27 +214,33 @@ export const QuarantinePage: React.FC<QuarantinePageProps> = ({
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap space-x-1.5">
                       <button
+                        type="button"
                         onClick={() => onSelectMemory(item)}
                         title="Inspect full memory"
-                        className="p-1.5 rounded hover:bg-cyber-surfaceHover text-cyber-muted hover:text-white transition-colors"
+                        className="icon-button"
+                        aria-label={`Inspect memory ${item.id}`}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
+                          reviewTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
                           setSelectedItem(item);
                           setReviewAction('approve');
                         }}
-                        className="px-2.5 py-1 rounded bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/40 text-[11px] font-semibold transition-colors"
+                        className="btn-primary review-action"
                       >
                         Release
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
+                          reviewTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
                           setSelectedItem(item);
                           setReviewAction('reject');
                         }}
-                        className="px-2.5 py-1 rounded bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 text-[11px] font-semibold transition-colors"
+                        className="btn-danger review-action"
                       >
                         Reject
                       </button>
@@ -228,74 +255,77 @@ export const QuarantinePage: React.FC<QuarantinePageProps> = ({
 
       {/* Review Confirmation Modal */}
       {selectedItem && reviewAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-cyber-surface border border-cyber-border rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-2 text-sm font-mono font-semibold">
+        <div className="modal-overlay">
+          <div ref={reviewDialogRef} className="dialog-panel review-dialog" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" tabIndex={-1}>
+            <div className="dialog-header">
               {reviewAction === 'approve' ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  <span className="text-emerald-400">AUTHORIZE RELEASE TO TRUSTED MEMORY</span>
+                  <CheckCircle2 className="text-emerald-400" aria-hidden="true" />
+                  <h2 id="review-dialog-title" className="dialog-title">Release to trusted memory?</h2>
                 </>
               ) : (
                 <>
-                  <XCircle className="w-5 h-5 text-red-400" />
-                  <span className="text-red-400">PERMANENTLY REJECT & LOG TO AUDIT TRAIL</span>
+                  <XCircle className="text-red-400" aria-hidden="true" />
+                  <h2 id="review-dialog-title" className="dialog-title">Reject and purge this memory?</h2>
                 </>
               )}
             </div>
 
-            <div className="p-3 bg-cyber-bg rounded-lg border border-cyber-border text-xs font-mono space-y-1">
+            <div className="dialog-body review-dialog-body">
+            {actionMessage?.type === 'error' && <div className="notice notice-error" role="alert">{actionMessage.text}</div>}
+            <dl className="metadata-grid review-meta">
               <div>
-                <span className="text-cyber-muted">Memory ID: </span>
-                <span className="text-slate-200">{selectedItem.id}</span>
+                <dt>Memory ID</dt>
+                <dd className="table-mono">{selectedItem.id}</dd>
               </div>
               <div>
-                <span className="text-cyber-muted">Owner: </span>
-                <span className="text-slate-200">{selectedItem.user_id}</span>
+                <dt>Owner</dt>
+                <dd>{selectedItem.user_id}</dd>
               </div>
               <div>
-                <span className="text-cyber-muted">Risk Score: </span>
-                <span className="text-slate-200">{selectedItem.risk_score} / 100</span>
+                <dt>Risk score</dt>
+                <dd className="table-mono">{selectedItem.risk_score} / 100</dd>
               </div>
-            </div>
+            </dl>
 
-            <div className="space-y-1">
-              <label className="text-xs font-mono uppercase text-cyber-muted block">
-                Reviewer Justification Notes
+            <div className="review-notes">
+              <label className="field-label" htmlFor="reviewer-notes">
+                Reviewer notes <span className="font-normal text-cyber-muted">(optional)</span>
               </label>
               <textarea
+                id="reviewer-notes"
                 rows={3}
                 placeholder={
                   reviewAction === 'approve'
-                    ? 'State reasons why this memory is verified safe to store in trusted memory...'
-                    : 'State reasons for permanent rejection and security blocking...'
+                    ? 'Add context for releasing this memory…'
+                    : 'Add context for rejecting this memory…'
                 }
                 value={reviewerNotes}
                 onChange={(e) => setReviewerNotes(e.target.value)}
-                className="w-full bg-cyber-card border border-cyber-border rounded-lg p-3 text-xs text-slate-200 placeholder-cyber-dim focus:outline-none focus:border-cyber-accent/50 font-mono resize-none"
+                className="field-textarea"
+                autoFocus
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-cyber-border">
+            </div>
+            <div className="dialog-footer">
               <button
+                type="button"
                 onClick={() => {
                   setSelectedItem(null);
                   setReviewAction(null);
                   setReviewerNotes('');
                 }}
                 disabled={actionLoading}
-                className="px-3.5 py-1.5 rounded bg-cyber-card hover:bg-cyber-surfaceHover text-xs font-mono text-slate-300 transition-colors"
+                className="btn"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleExecuteReview}
                 disabled={actionLoading}
-                className={`px-4 py-1.5 rounded text-xs font-mono font-semibold transition-colors flex items-center gap-2 ${
-                  reviewAction === 'approve'
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                    : 'bg-red-600 hover:bg-red-500 text-white'
-                }`}
+                className={reviewAction === 'approve' ? 'btn-primary' : 'btn-danger'}
               >
                 {actionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 {reviewAction === 'approve' ? 'Confirm Release' : 'Confirm Rejection'}
@@ -304,6 +334,6 @@ export const QuarantinePage: React.FC<QuarantinePageProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 };

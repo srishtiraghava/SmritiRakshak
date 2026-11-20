@@ -18,6 +18,7 @@ export const App: React.FC = () => {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [loadingStats, setLoadingStats] = useState<boolean>(false);
   const [activeModalMemory, setActiveModalMemory] = useState<MemoryItemResponse | null>(null);
+  const [navigationOpen, setNavigationOpen] = useState<boolean>(false);
 
   // Fetch telemetry from backend & PostgreSQL
   const fetchTelemetry = async () => {
@@ -62,6 +63,20 @@ export const App: React.FC = () => {
     }
   }, [currentScreen]);
 
+  useEffect(() => {
+    if (!navigationOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setNavigationOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [navigationOpen]);
+
+  const handleSelectScreen = (screen: ScreenId) => {
+    setCurrentScreen(screen);
+    setNavigationOpen(false);
+  };
+
   const handleSelectMemoryById = async (id: string) => {
     try {
       const memory = await api.getMemoryDetail(id);
@@ -72,24 +87,25 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cyber-bg text-slate-100 flex flex-col font-sans">
-      {/* Header Bar with Live Database Status */}
+    <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <Header
         health={health}
         loading={loadingStats}
+        navigationOpen={navigationOpen}
+        onToggleNavigation={() => setNavigationOpen((open) => !open)}
         onRefresh={fetchTelemetry}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Navigation Sidebar */}
+      <div className="app-workspace">
         <Navigation
           currentScreen={currentScreen}
-          onSelectScreen={setCurrentScreen}
+          onSelectScreen={handleSelectScreen}
           quarantineCount={stats?.quarantined_count ?? 0}
+          isOpen={navigationOpen}
         />
 
-        {/* Main Content Workspace */}
-        <main className="flex-1 overflow-y-auto bg-cyber-bg">
+        <main id="main-content" className="main-content" tabIndex={-1}>
           {currentScreen === 'overview' && (
             <OverviewPage
               stats={stats}

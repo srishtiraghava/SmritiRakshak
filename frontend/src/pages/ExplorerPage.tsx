@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { MemoryItemResponse } from '../api/types';
 import { DecisionBadge } from '../components/StatusBadge';
 import { RiskScoreGauge } from '../components/RiskScoreGauge';
+import { PageHeader } from '../components/PageHeader';
 
 interface ExplorerPageProps {
   onSelectMemory: (memory: MemoryItemResponse) => void;
@@ -57,32 +58,24 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
   });
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-cyber-border">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-100 font-mono tracking-wide">
-            MEMORY EXPLORER
-          </h2>
-          <p className="text-xs text-cyber-muted mt-0.5">
-            Query and inspect memory records persisted across segregated PostgreSQL tiers
-          </p>
-        </div>
-
-        <button
+    <section className="page-view" aria-labelledby="memory-explorer-title">
+      <PageHeader
+        titleId="memory-explorer-title"
+        title="Memory explorer"
+        description="Search records across trusted, review, quarantine, and audit tiers. Select a record to inspect its decision evidence."
+        actions={<button
           onClick={loadMemories}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyber-card border border-cyber-border text-xs font-mono text-slate-300 hover:text-white transition-colors"
+          className="btn"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </button>
-      </div>
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh records
+        </button>}
+      />
 
       {/* Filter & Search Bar */}
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         {/* Tier Decision Selector Tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-cyber-card border border-cyber-border overflow-x-auto text-xs font-mono">
+        <div className="filter-tabs" role="group" aria-label="Filter memories by decision">
           {[
             { id: 'all', label: 'ALL TIERS' },
             { id: 'allow', label: 'ALLOW (TRUSTED)' },
@@ -96,11 +89,9 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
                 setDecisionFilter(tab.id);
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded-md font-medium whitespace-nowrap transition-colors ${
-                decisionFilter === tab.id
-                  ? 'bg-cyber-surfaceHover text-cyber-accent border border-cyber-borderLight shadow-sm'
-                  : 'text-cyber-muted hover:text-slate-200'
-              }`}
+              type="button"
+              aria-pressed={decisionFilter === tab.id}
+              className={`filter-tab ${decisionFilter === tab.id ? 'is-active' : ''}`}
             >
               {tab.label}
             </button>
@@ -108,16 +99,17 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
         </div>
 
         {/* Search input */}
-        <div className="relative min-w-[280px]">
-          <Search className="w-4 h-4 text-cyber-muted absolute left-3 top-1/2 -translate-y-1/2" />
+        <label className="search-field">
+          <Search aria-hidden="true" />
           <input
             type="text"
+            aria-label="Search memory records"
             placeholder="Search by ID, user, content..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-cyber-card border border-cyber-border rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-cyber-dim focus:outline-none focus:border-cyber-accent/50 font-mono"
+            className="field"
           />
-        </div>
+        </label>
       </div>
 
       {/* Error Banner */}
@@ -128,9 +120,9 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
       )}
 
       {/* Main Table */}
-      <div className="rounded-xl border border-cyber-border bg-cyber-card overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
+      <div className="table-frame">
+        <div className="table-scroll">
+          <table aria-label="Memory records">
             <thead className="bg-cyber-bg/80 border-b border-cyber-border text-cyber-muted uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="px-4 py-3 font-semibold">Decision</th>
@@ -162,15 +154,24 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
                   <tr
                     key={m.id}
                     onClick={() => onSelectMemory(m)}
-                    className="hover:bg-cyber-surfaceHover/70 transition-colors cursor-pointer group"
+                    tabIndex={0}
+                    aria-label={`Inspect memory ${m.id}`}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onSelectMemory(m);
+                      }
+                    }}
+                    className="cursor-pointer"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
                       <DecisionBadge decision={m.decision} size="sm" />
                     </td>
-                    <td className="px-4 py-3 font-medium text-cyber-accent whitespace-nowrap">
+                    <td className="table-link whitespace-nowrap">
                       {m.id}
                     </td>
-                    <td className="px-4 py-3 max-w-xs truncate text-slate-300">
+                    <td>
+                      <span className="table-clip" title={m.content || undefined}>
                       {m.content ? (
                         m.content
                       ) : (
@@ -178,6 +179,7 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
                           [Untrusted Content Blocked - SHA256: {m.content_sha256?.slice(0, 12)}...]
                         </span>
                       )}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-cyber-muted whitespace-nowrap uppercase">
                       {m.source}
@@ -193,11 +195,13 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectMemory(m);
                         }}
-                        className="p-1 rounded hover:bg-cyber-border text-cyber-muted hover:text-white transition-colors"
+                        className="icon-button"
+                        aria-label={`Inspect memory ${m.id}`}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -210,11 +214,11 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
         </div>
 
         {/* Pagination Bar */}
-        <div className="px-4 py-3 border-t border-cyber-border bg-cyber-bg/40 flex items-center justify-between text-xs font-mono text-cyber-muted">
+        <div className="pagination-bar">
           <span>
             Showing {filteredMemories.length} of {total} records
           </span>
-          <div className="flex items-center gap-2">
+          <div className="pagination-controls">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1 || loading}
@@ -233,6 +237,6 @@ export const ExplorerPage: React.FC<ExplorerPageProps> = ({ onSelectMemory }) =>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
